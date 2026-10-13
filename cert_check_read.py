@@ -3,27 +3,9 @@
 import ssl
 import socket
 from datetime import datetime, timezone
+import os
 
-# List of URLs from your table
-urls = [
-    "conference.thestar.com.my",
-    "dengar.suria.my",
-    "majoriti.com.my",
-    "newsstand.thestar.com.my",
-    "smrg.my",
-    "soba.com.my",
-    "suria.my",
-    "www.988.com.my",
-    "www.carsifu.my",
-    "www.kuali.com",
-    "www.mstar.com.my",
-    "www.rage.com.my",
-    "www.starcherish.com",
-    "www.starmediagroup.my",
-    "www.starproperty.my",
-    "www.thestar.com.my",
-    "www.thestartv.com"
-]
+FILENAME = "urls.txt"
 
 def get_cert_expiry(hostname, port=443, timeout=5):
     context = ssl.create_default_context()
@@ -37,22 +19,35 @@ def get_cert_expiry(hostname, port=443, timeout=5):
     except Exception as e:
         return f"Error: {e}"
 
-def check_certificates(url_list):
+def check_certificates():
+    if not os.path.exists(FILENAME):
+        print(f"Error: Could not find '{FILENAME}' in the current directory.")
+        print("Please create 'urls.txt' and put one URL per line.")
+        return
+
     print(f"{'URL':<30} | {'Certificate Validity':<22} | {'Less than 60 days?'}")
     print("-" * 75)
     
     now = datetime.now(timezone.utc)
     
-    for url in url_list:
-        expiry = get_cert_expiry(url)
-        
-        if isinstance(expiry, datetime):
-            formatted_date = expiry.strftime('%d %B %Y')
-            days_remaining = (expiry - now).days
-            is_less_than_60 = "Yes" if days_remaining < 60 else "No"
-            print(f"{url:<30} | {formatted_date:<22} | {is_less_than_60}")
-        else:
-            print(f"{url:<30} | {expiry}")
+    # Read file line-by-line using a loop
+    with open(FILENAME, 'r') as file:
+        for line in file:
+            url = line.strip()
+            
+            # Skip empty lines or comment lines starting with '#'
+            if not url or url.startswith('#'):
+                continue
+                
+            expiry = get_cert_expiry(url)
+            
+            if isinstance(expiry, datetime):
+                formatted_date = expiry.strftime('%d %B %Y')
+                days_remaining = (expiry - now).days
+                is_less_than_60 = "Yes" if days_remaining < 60 else "No"
+                print(f"{url:<30} | {formatted_date:<22} | {is_less_than_60}")
+            else:
+                print(f"{url:<30} | {expiry}")
 
 if __name__ == "__main__":
-    check_certificates(urls)
+    check_certificates()
